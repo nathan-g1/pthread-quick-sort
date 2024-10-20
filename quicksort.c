@@ -128,15 +128,15 @@ int main() {
     double time_parallel = (double)(end_parallel - start_parallel) / CLOCKS_PER_SEC;
 
     // Print sorted array
-    printf("Sorted array (parallel):\n");
-    print_array(array, n);
+    // printf("Sorted array (parallel):\n");
+    // print_array(array, n);
 
-    printf("Sorted array (sequential):\n");
-    print_array(array_copy, n);
+    // printf("Sorted array (sequential):\n");
+    // print_array(array_copy, n);
 
     // Print sorted array (optional, for debugging purposes)
-    printf("Sorted array:\n");
-    print_array(array, n);
+    // printf("Sorted array:\n");
+    // print_array(array, n);
 
        // Print timing results
     printf("Time taken for parallel quicksort: %f seconds\n", time_parallel);
