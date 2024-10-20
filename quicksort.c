@@ -112,8 +112,8 @@ int main() {
     }
 
     // Print the array
-    printf("Unsorted array:\n");
-    print_array(array, n);
+    // printf("Unsorted array:\n");
+    // print_array(array, n);
 
     // Measure time for sequential quicksort
     clock_t start_sequential = clock();
