@@ -51,10 +51,10 @@ void* parallel_quicksort(void* args) {
 
     if (left < right) {
         // If subarray is smaller than threshold, perform sequential quicksort
-        if (right - left < THRESHOLD) {
-            sequential_quicksort(array, left, right);
-            return NULL;
-        }
+        // if (right - left < THRESHOLD) {
+        //     sequential_quicksort(array, left, right);
+        //     return NULL;
+        // }
 
         // Partition the array
         int pivotIndex = partition(array, left, right);
@@ -99,8 +99,11 @@ void print_array(int* array, int size) {
 
 // Main function to test the parallel quicksort
 int main() {
-    int n = 1 << 20; // Array size (2^20)
-    // int n = 30;
+    // Accept the array size from the user
+    int n;
+    printf("Enter the size of the array: ");
+    scanf("%d", &n);
+
     int* array = (int*)malloc(n * sizeof(int));
     int* array_copy = (int*)malloc(n * sizeof(int));
 
@@ -111,9 +114,8 @@ int main() {
         array_copy[i] = array[i];
     }
 
-    // Print the array
-    // printf("Unsorted array:\n");
-    // print_array(array, n);
+    // Print the array size
+    printf("Array size: %d\n", n);
 
     // Measure time for sequential quicksort
     clock_t start_sequential = clock();
@@ -127,18 +129,8 @@ int main() {
     clock_t end_parallel = clock();
     double time_parallel = (double)(end_parallel - start_parallel) / CLOCKS_PER_SEC;
 
-    // Print sorted array
-    // printf("Sorted array (parallel):\n");
-    // print_array(array, n);
-
-    // printf("Sorted array (sequential):\n");
-    // print_array(array_copy, n);
-
-    // Print sorted array (optional, for debugging purposes)
-    // printf("Sorted array:\n");
-    // print_array(array, n);
-
-       // Print timing results
+    // Print timing results
+    printf("\n");
     printf("Time taken for parallel quicksort: %f seconds\n", time_parallel);
     printf("Time taken for sequential quicksort: %f seconds\n", time_sequential);
     printf("Speedup: %f\n", time_sequential / time_parallel);
