@@ -164,7 +164,7 @@ void write_array(int *array, int n)
     for (int i = 0; i < n; i++)
     {
         fprintf(file, "%d", array[i]);
-        if (i < 9) {
+        if (i < n - 1) {
             fprintf(file, ",");
         }
     }
