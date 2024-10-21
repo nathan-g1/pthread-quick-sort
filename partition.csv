@@ -1,0 +1,16 @@
+partition, array_size, sequential_time, parallel_time
+partition_lomuto, 1024, 0.000072, 0.000065
+partition_lomuto, 32768, 0.003073, 0.003094
+partition_lomuto, 1048576, 0.127184, 0.129267
+partition_lomuto, 33554432, 4.864311, 5.172810
+partition_lomuto, 1073741824, 238.311260, 275.741210
+partition_median_of_three,1024, 0.000142, 0.000142
+partition_median_of_three,32768, 0.006949, 0.006184
+partition_median_of_three,1048576, 0.118632, 0.107982
+partition_median_of_three,33554432, 4.202961, 4.434173
+partition_median_of_three, 1073741824, 145.514919, 161.622923
+partition_hoare, 1024, 0.000175, 0.000132
+partition_hoare, 32768, 0.006924, 0.006086
+partition_hoare, 1048576, 0.115194, 0.105534
+partition_hoare, 33554432, 4.072093, 4.353297
+partition_hoare, 1073741824, 141.325375, 157.862271

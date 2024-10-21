@@ -3,9 +3,10 @@
 #include <pthread.h>
 #include <time.h>
 #include <stdbool.h>
+#include <math.h>
 
 #define THRESHOLD 5000000 // Threshold for switching to sequential quicksort
-#define MAX_THREADS 8     // Maximum number of threads
+#define MAX_THREADS 14     // Maximum number of threads
 
 typedef struct
 {
@@ -148,46 +149,44 @@ void generate_random_array(int *array, int size)
 {
     for (int i = 0; i < size; i++)
     {
-        array[i] = rand() % 100000;
+        array[i] = rand() % 100;
     }
 }
 
-// write first 10 elements of the array in a file
-void write_array(int *array, int n)
-{
-    FILE *file = fopen("array.txt", "a"); // Open file in append mode
-    if (file == NULL) {
-        perror("Error opening file");
-        return;
-    }
-
-    for (int i = 0; i < n; i++)
-    {
-        fprintf(file, "%d", array[i]);
-        if (i < n - 1) {
-            fprintf(file, ",");
+bool is_sorted(int *arr, int size) {
+    for (int i = 0; i < size; i++) {
+        if (arr[i] > arr[i + 1]) {
+            // print the two elements that are not in order
+            printf("arr[%d] = %d, arr[%d] = %d\n", i, arr[i], i + 1, arr[i + 1]);
+            return false;
         }
     }
-    fprintf(file, "\n");
-    fclose(file);
+    return true;
+}
+
+// print the array
+void print_array(int *arr, int size) {
+    for (int i = 0; i < size; i++) {
+        printf("%d ", arr[i]);
+    }
+    printf("\n");
 }
 
 // Main function to test the parallel quicksort
-int main()
-{
-    int n = 1 << 25;
+int main(void) {
+    int n = 1 << 15;
     int *array = (int *)malloc(n * sizeof(int));
 
     generate_random_array(array, n);
-    
-    write_array(array, n);
+    print_array(array, 10);
     clock_t start_parallel = clock();
     quicksort(array, n);
     clock_t end_parallel = clock();
     double time_parallel = (double)(end_parallel - start_parallel) / CLOCKS_PER_SEC;
 
-    printf("Parallel quicksort time for 2^30: %f seconds\n", time_parallel);
-    write_array(array, n);
+    printf("Parallel quicksort time for 2^%d: %f seconds\n", 15, time_parallel);
+    print_array(array, 10);
+    is_sorted(array, n) ? printf("Array is sorted\n") : printf("Array is not sorted\n");
     free(array);
     return 0;
 }
