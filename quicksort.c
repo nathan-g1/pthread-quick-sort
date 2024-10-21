@@ -2,141 +2,192 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <time.h>
+#include <stdbool.h>
 
-#define THRESHOLD 10000 // Threshold for switching to sequential quicksort
+#define THRESHOLD 5000000 // Threshold for switching to sequential quicksort
+#define MAX_THREADS 8     // Maximum number of threads
 
-typedef struct {
-    int* array;
+typedef struct
+{
+    int *array;
     int left;
     int right;
-} ThreadArgs;
+} Task;
+
+// Task queue
+Task taskQueue[256];
+int taskCount = 0;
+bool shutdown = false;
+
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER; // Mutex for task queue
+pthread_cond_t cond = PTHREAD_COND_INITIALIZER;   // Condition variable for task queue
 
 // Swap two elements
-void swap(int* a, int* b) {
+void swap(int *a, int *b)
+{
     int temp = *a;
     *a = *b;
     *b = temp;
 }
 
-// Partition the array
-int partition(int* array, int left, int right) {
-    int pivot = array[right];
-    int i = left - 1;
+// Partition the array: Hoare partition
+int partition_hoare(int *arr, int low, int high)
+{
+    int pivot = arr[low];
+    int i = low - 1, j = high + 1;
 
-    for (int j = left; j < right; j++) {
-        if (array[j] < pivot) {
+    while (1)
+    {
+        do
+        {
             i++;
-            swap(&array[i], &array[j]);
-        }
+        } while (arr[i] < pivot);
+
+        do
+        {
+            j--;
+        } while (arr[j] > pivot);
+
+        if (i >= j)
+            return j;
+
+        swap(&arr[i], &arr[j]);
     }
-    swap(&array[i + 1], &array[right]);
-    return i + 1;
 }
 
 // Sequential quicksort for small subarrays
-void sequential_quicksort(int* array, int left, int right) {
-    if (left < right) {
-        int pivotIndex = partition(array, left, right);
-        sequential_quicksort(array, left, pivotIndex - 1);
+void sequential_quicksort(int *array, int left, int right)
+{
+    if (left < right)
+    {
+        int pivotIndex = partition_hoare(array, left, right);
+        sequential_quicksort(array, left, pivotIndex);
         sequential_quicksort(array, pivotIndex + 1, right);
     }
 }
 
-// Parallel quicksort function
-void* parallel_quicksort(void* args) {
-    ThreadArgs* threadArgs = (ThreadArgs*)args;
-    int* array = threadArgs->array;
-    int left = threadArgs->left;
-    int right = threadArgs->right;
+// Worker function for the thread pool
+void *worker(void *arg)
+{
+    while (1)
+    {
+        pthread_mutex_lock(&mutex);
+        while (taskCount == 0 && !shutdown)
+        {
+            pthread_cond_wait(&cond, &mutex);
+        }
+        if (shutdown)
+        {
+            pthread_mutex_unlock(&mutex);
+            break;
+        }
+        // Get the next task from the queue
+        Task task = taskQueue[--taskCount];
+        pthread_mutex_unlock(&mutex);
 
-    if (left < right) {
-        // If subarray is smaller than threshold, perform sequential quicksort
-        // if (right - left < THRESHOLD) {
-        //     sequential_quicksort(array, left, right);
-        //     return NULL;
-        // }
+        // Perform the quicksort task
+        int *array = task.array;
+        int left = task.left;
+        int right = task.right;
 
-        // Partition the array
-        int pivotIndex = partition(array, left, right);
-
-        // Create thread arguments for left and right subarrays
-        ThreadArgs leftArgs = {array, left, pivotIndex - 1};
-        ThreadArgs rightArgs = {array, pivotIndex + 1, right};
-
-        // Create threads for the left and right subarrays
-        pthread_t leftThread, rightThread;
-        pthread_create(&leftThread, NULL, parallel_quicksort, &leftArgs);
-        pthread_create(&rightThread, NULL, parallel_quicksort, &rightArgs);
-
-        // Wait for both threads to finish
-        pthread_join(leftThread, NULL);
-        pthread_join(rightThread, NULL);
+        if (right - left < THRESHOLD)
+        {
+            sequential_quicksort(array, left, right);
+        }
+        else
+        {
+            int pivotIndex = partition_hoare(array, left, right);
+            // Add left and right tasks to the queue
+            pthread_mutex_lock(&mutex);
+            taskQueue[taskCount++] = (Task){array, left, pivotIndex};
+            taskQueue[taskCount++] = (Task){array, pivotIndex + 1, right};
+            pthread_mutex_unlock(&mutex);
+            pthread_cond_signal(&cond);
+        }
     }
-
     return NULL;
 }
 
-// Function to initialize and start parallel quicksort
-void quicksort(int* array, int size) {
-    ThreadArgs args = {array, 0, size - 1};
-    parallel_quicksort(&args);
+// Function to initialize and start parallel quicksort using a thread pool
+void quicksort(int *array, int size)
+{
+    pthread_t threadPool[MAX_THREADS];
+
+    // Start the worker threads
+    for (int i = 0; i < MAX_THREADS; i++)
+    {
+        pthread_create(&threadPool[i], NULL, worker, NULL);
+    }
+
+    // Add the initial task to the queue
+    pthread_mutex_lock(&mutex);
+    taskQueue[taskCount++] = (Task){array, 0, size - 1};
+    pthread_mutex_unlock(&mutex);
+    pthread_cond_signal(&cond);
+
+    // Wait for the tasks to complete
+    pthread_mutex_lock(&mutex);
+    while (taskCount > 0)
+    {
+        pthread_mutex_unlock(&mutex);
+        pthread_mutex_lock(&mutex);
+    }
+    shutdown = true;
+    pthread_mutex_unlock(&mutex);
+    pthread_cond_broadcast(&cond);
+
+    // Join the worker threads
+    for (int i = 0; i < MAX_THREADS; i++)
+    {
+        pthread_join(threadPool[i], NULL);
+    }
 }
 
 // Function to generate a random array of integers
-void generate_random_array(int* array, int size) {
-    for (int i = 0; i < size; i++) {
-        array[i] = rand() % 10000000;
+void generate_random_array(int *array, int size)
+{
+    for (int i = 0; i < size; i++)
+    {
+        array[i] = rand() % 100000;
     }
 }
 
-// Function to print the array (for debugging)
-void print_array(int* array, int size) {
-    for (int i = 0; i < size; i++) {
-        printf("%d ", array[i]);
+// write first 10 elements of the array in a file
+void write_array(int *array, int n)
+{
+    FILE *file = fopen("array.txt", "a"); // Open file in append mode
+    if (file == NULL) {
+        perror("Error opening file");
+        return;
     }
-    printf("\n");
+
+    for (int i = 0; i < n; i++)
+    {
+        fprintf(file, "%d", array[i]);
+        if (i < 9) {
+            fprintf(file, ",");
+        }
+    }
+    fprintf(file, "\n");
+    fclose(file);
 }
 
 // Main function to test the parallel quicksort
-int main() {
-    // Accept the array size from the user
-    int n;
-    printf("Enter the size of the array: ");
-    scanf("%d", &n);
+int main()
+{
+    int n = 1 << 25;
+    int *array = (int *)malloc(n * sizeof(int));
 
-    int* array = (int*)malloc(n * sizeof(int));
-    int* array_copy = (int*)malloc(n * sizeof(int));
-
-    // Generate a random array
     generate_random_array(array, n);
-    // Copy the array for sequential quicksort
-    for (int i = 0; i < n; i++) {
-        array_copy[i] = array[i];
-    }
-
-    // Print the array size
-    printf("Array size: %d\n", n);
-
-    // Measure time for sequential quicksort
-    clock_t start_sequential = clock();
-    sequential_quicksort(array_copy, 0, n - 1);
-    clock_t end_sequential = clock();
-    double time_sequential = (double)(end_sequential - start_sequential) / CLOCKS_PER_SEC;
-
-    // Measure time for parallel quicksort
+    
+    write_array(array, n);
     clock_t start_parallel = clock();
     quicksort(array, n);
     clock_t end_parallel = clock();
     double time_parallel = (double)(end_parallel - start_parallel) / CLOCKS_PER_SEC;
 
-    // Print timing results
-    printf("\n");
-    printf("Time taken for parallel quicksort: %f seconds\n", time_parallel);
-    printf("Time taken for sequential quicksort: %f seconds\n", time_sequential);
-    printf("Speedup: %f\n", time_sequential / time_parallel);
-
-    // Free allocated memory
+    printf("Parallel quicksort time for 2^30: %f seconds\n", time_parallel);
+    write_array(array, n);
     free(array);
-    free(array_copy);
     return 0;
 }
