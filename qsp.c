@@ -126,7 +126,7 @@ void benchmark_sorts(int n) {
 }
 
 int main() {
-    int size[] = { 15, 20, 20, 25, 30}; // Size of the array
+    int size[] = { 10, 15, 20, 25, 30}; // Size of the array
     for (int i = 0; i < 5; i++) {
         benchmark_sorts(size[i]);
     }
